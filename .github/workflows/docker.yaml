@@ -1,13 +1,13 @@
 name: Build and Push Docker Image
 
-permissions: 
-  contents: read 
+permissions:
+  contents: read
   packages: write
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * 1'  # Runs at 02:00, only on Monday
+    - cron: "0 2 * * 1" # Runs at 02:00, only on Monday
   push:
     branches: main
     paths:
