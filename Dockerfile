@@ -9,6 +9,14 @@ RUN xcaddy build \
 
 FROM caddy:2.11.2
 
+ENV CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
+
+COPY root/etc/caddy/Caddyfile /etc/caddy/Caddyfile
+
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
-CMD ["caddy", "docker-proxy"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+ENTRYPOINT [ "caddy" ]
+CMD [ "docker-proxy" ]
