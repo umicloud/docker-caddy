@@ -1,3 +1,7 @@
-http://localhost:3000 {
-    respond /health 200
+:3000 {
+	handle /health {
+		respond "ok" 200
+	}
+
+	respond 404
 }
