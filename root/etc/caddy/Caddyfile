@@ -1,3 +1,8 @@
+{
+	email {env.CADDY_EMAIL}
+	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+}
+
 :3000 {
 	handle /health {
 		respond "ok" 200
