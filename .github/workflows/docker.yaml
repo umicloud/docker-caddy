@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - ./Dockerfile
+      - ./Dockerfile.alpine
 
 permissions:
   contents: read
@@ -30,6 +31,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       labels: ${{ steps.metadata.outputs.labels }}
       tags: ${{ steps.metadata.outputs.tags }}
+      tags_alpine: ${{ steps.metadata_alpine.outputs.tags }}
       platforms: linux/amd64,linux/arm64
 
     steps:
@@ -54,18 +56,48 @@ jobs:
             org.opencontainers.image.title=${{ env.DOCKER_NAME }}
             org.opencontainers.image.description=${{ env.DOCKER_DESCRIPTION }}
 
-  # Job to build and push Docker Image for each architecture
+      - name: Generate Alpine image metadata (same tags with -alpine suffix)
+        uses: docker/metadata-action@v6
+        id: metadata_alpine
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/${{ env.DOCKER_NAME }}
+          flavor: |
+            suffix=-alpine,onlatest=false
+          tags: |
+            type=semver,pattern={{version}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}},value=v${{ steps.version.outputs.version }}
+          labels: |
+            org.opencontainers.image.title=${{ env.DOCKER_NAME }}
+            org.opencontainers.image.description=${{ env.DOCKER_DESCRIPTION }} (Alpine)
+
+  # Job to build and push Docker Image for each architecture and base image variant
   build:
-    name: Build and Push ${{ matrix.platform }} Image
+    name: Build and Push ${{ matrix.variant }} ${{ matrix.platform }}
     needs: metadata
     strategy:
       fail-fast: false
       matrix:
         include:
-          - arch: amd64
+          - variant: default
+            dockerfile: Dockerfile
+            arch: amd64
             platform: linux/amd64
             runner: blacksmith-4vcpu-ubuntu-2404
-          - arch: arm64
+          - variant: default
+            dockerfile: Dockerfile
+            arch: arm64
+            platform: linux/arm64
+            runner: blacksmith-4vcpu-ubuntu-2404-arm
+          - variant: alpine
+            dockerfile: Dockerfile.alpine
+            arch: amd64
+            platform: linux/amd64
+            runner: blacksmith-4vcpu-ubuntu-2404
+          - variant: alpine
+            dockerfile: Dockerfile.alpine
+            arch: arm64
             platform: linux/arm64
             runner: blacksmith-4vcpu-ubuntu-2404-arm
     runs-on: ${{ matrix.runner }}
@@ -84,11 +116,18 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare tags for ${{ matrix.arch }}
+      - name: Prepare tags for ${{ matrix.variant }} ${{ matrix.arch }}
         id: arch_tags
+        env:
+          TAGS_DEFAULT: ${{ needs.metadata.outputs.tags }}
+          TAGS_ALPINE: ${{ needs.metadata.outputs.tags_alpine }}
         run: |
           set -euo pipefail
-          tags="${{ needs.metadata.outputs.tags }}"
+          if [ "${{ matrix.variant }}" = "alpine" ]; then
+            tags="$TAGS_ALPINE"
+          else
+            tags="$TAGS_DEFAULT"
+          fi
           arch="${{ matrix.arch }}"
           arch_tags=""
           while IFS= read -r tag; do
@@ -101,12 +140,12 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build and publish ${{ matrix.platform }} image
+      - name: Build and publish ${{ matrix.variant }} ${{ matrix.platform }} image
         uses: useblacksmith/build-push-action@v2
         id: build
         with:
           context: .
-          file: ./Dockerfile
+          file: ./${{ matrix.dockerfile }}
           push: true
           provenance: false
           platforms: ${{ matrix.platform }}
@@ -134,12 +173,18 @@ jobs:
       - name: Create multi-architecture manifests
         env:
           TAGS: ${{ needs.metadata.outputs.tags }}
+          TAGS_ALPINE: ${{ needs.metadata.outputs.tags_alpine }}
         run: |
           set -euo pipefail
-          while IFS= read -r tag; do
-            [[ -z "$tag" ]] && continue
-            docker buildx imagetools create \
-              -t "$tag" \
-              "${tag}-amd64" \
-              "${tag}-arm64"
-          done <<< "$TAGS"
+          merge_manifests() {
+            local list="$1"
+            while IFS= read -r tag; do
+              [[ -z "$tag" ]] && continue
+              docker buildx imagetools create \
+                -t "$tag" \
+                "${tag}-amd64" \
+                "${tag}-arm64"
+            done <<< "$list"
+          }
+          merge_manifests "$TAGS"
+          merge_manifests "$TAGS_ALPINE"
