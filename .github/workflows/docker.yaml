@@ -1,17 +1,17 @@
-name: Build and Push Docker Image
-
-permissions:
-  contents: read
-  packages: write
+name: docker
 
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 2 * * 1" # Runs at 02:00, only on Monday
   push:
-    branches: main
+    branches: [main]
     paths:
       - ./Dockerfile
+
+permissions:
+  contents: read
+  packages: write
 
 # Environment variables available to all jobs and steps in this workflow
 env:
