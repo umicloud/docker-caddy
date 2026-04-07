@@ -8,14 +8,10 @@
 
 ## Environment variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `CADDY_EMAIL` | The email address to use for the ACME certificate | ✅ |
-| `CLOUDFLARE_API_TOKEN` | The API token to use for the Cloudflare DNS | ✅ |
-
-## Example Caddyfile
-
-```caddyfile [Caddyfile]
+| Variable               | Description                                       | Required |
+| ---------------------- | ------------------------------------------------- | -------- |
+| `CADDY_EMAIL`          | The email address to use for the ACME certificate | ✅       |
+| `CLOUDFLARE_API_TOKEN` | The API token to use for the Cloudflare DNS       | ✅       |
 
 ## Example Compose file
 
@@ -46,6 +42,27 @@ networks:
 
 volumes:
   caddy_data: {}
+```
+
+<!-- /automd -->
+
+## Default Caddyfile
+
+<!-- automd:file src="./root/etc/caddy/Caddyfile" code -->
+
+``` [Caddyfile]
+{
+	email {env.CADDY_EMAIL}
+	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+}
+
+:3000 {
+	handle /health {
+		respond "ok" 200
+	}
+
+	respond 404
+}
 ```
 
 <!-- /automd -->
