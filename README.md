@@ -6,6 +6,17 @@
 
 <!-- /automd -->
 
+## Environment variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `CADDY_EMAIL` | The email address to use for the ACME certificate | ✅ |
+| `CLOUDFLARE_API_TOKEN` | The API token to use for the Cloudflare DNS | ✅ |
+
+## Example Caddyfile
+
+```caddyfile [Caddyfile]
+
 ## Example Compose file
 
 <!-- automd:file src="./compose.yaml" code -->
