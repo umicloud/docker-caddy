@@ -81,7 +81,7 @@ volumes:
 }
 
 (tinyauth) {
-	forward_auth tinyauth:8080 {
+	forward_auth tinyauth:3000 {
 		uri /api/auth/caddy
 	}
 }
