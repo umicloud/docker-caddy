@@ -54,6 +54,47 @@ volumes:
 {
 	email {env.CADDY_EMAIL}
 	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+
+	servers {
+		trusted_proxies cloudflare {
+			interval 12h
+			timeout 15s
+		}
+		trusted_proxies_strict
+		client_ip_headers Cf-Connecting-Ip
+	}
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10MiB
+			roll_keep_for 168h
+		}
+		format json
+		level INFO
+	}
+
+	crowdsec {
+		api_url http://crowdsec:8080
+		api_key {env.CROWDSEC_API_KEY}
+		appsec_url http://crowdsec:7422
+	}
+}
+
+(tinyauth) {
+	forward_auth tinyauth:8080 {
+		uri /api/auth/caddy
+	}
+}
+
+(logging) {
+	log {
+		output file /var/log/caddy/{args[0]}.access.log {
+			roll_size 10MiB
+			roll_keep_for 168h
+		}
+		format json
+		level INFO
+	}
 }
 
 :3000 {
