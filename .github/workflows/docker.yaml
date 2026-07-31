@@ -141,7 +141,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and publish ${{ matrix.variant }} ${{ matrix.platform }} image
-        uses: useblacksmith/build-push-action@v2
+        uses: useblacksmith/build-push-action@v2.2.0
         id: build
         with:
           context: .
